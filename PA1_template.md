@@ -17,13 +17,32 @@ Show any code that is needed to
 * Load some libraries we'll need.
 * Get the data. Data for this project are located in the fork of the provided GitHub repo. Unzip it and load it.
 
-```{r, echo=TRUE}
+
+```r
 library(ggplot2)
 library(dplyr)
+```
 
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 unzip(zipfile = "activity.zip")
 activity <- read.csv("activity.csv", stringsAsFactors = FALSE)
-
 ```
 
 ## What is mean total number of steps taken per day?
@@ -45,7 +64,8 @@ report the numbers. Code as: stat = "identity".
 1. Find the mean and median of those sums.
 1. Plot a histogram for the total steps taken each day.
 
-```{r, tot_by_day, echo = TRUE}
+
+```r
 steps_tot_by_day <- select(activity, steps, date) %>%
         filter(!is.na(steps)) %>% # The assignment says don't clean, but I can't summarize
                                   # unless I filter.
@@ -62,9 +82,15 @@ ggplot(data = steps_tot_by_day, aes(x = date, y = `sum(steps)`)) +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+```
+## Warning: Ignoring unknown parameters: binwidth, bins, pad
+```
+
+![](PA1_template_files/figure-html/tot_by_day-1.png)<!-- -->
+
 ### Report results
-- Mean total number of steps taken per day: `r format(tot_steps_mean, scientific = FALSE)`.
-- Median total number of steps taken per day: `r tot_steps_median`.
+- Mean total number of steps taken per day: 10766.19.
+- Median total number of steps taken per day: 10765.
 
 ## What is the average daily activity pattern?
 ### Assignment
@@ -80,7 +106,8 @@ This is an instructive example for me because it answers my question about how N
 ### Bad plot
 This does not satisfy the assignment, but for my own pleasure and understanding, I'm running this the
 wrong way. (I can do that.) The query lacks a filter and spoils the summary.
-```{r daily_activity_incorrect, echo=TRUE}
+
+```r
 daily_activity <- select(activity, steps, interval) %>%
         group_by(interval) %>%
         summarize(mean(steps))
@@ -88,9 +115,22 @@ daily_activity <- select(activity, steps, interval) %>%
 head(daily_activity)
 ```
 
+```
+## # A tibble: 6 x 2
+##   interval `mean(steps)`
+##      <int>         <dbl>
+## 1        0            NA
+## 2        5            NA
+## 3       10            NA
+## 4       15            NA
+## 5       20            NA
+## 6       25            NA
+```
+
 *That's* not good! I must filter NA values. Try again...
 
-```{r daily_activity, echo=TRUE}
+
+```r
 daily_activity <- select(activity, steps, interval) %>%
         filter(!is.na(steps)) %>%
         group_by(interval) %>%
@@ -98,15 +138,31 @@ daily_activity <- select(activity, steps, interval) %>%
 
 head(daily_activity)
 ```
-### Ready to plot the answer
-```{r daily_activity_plot, echo = TRUE}
 
+```
+## # A tibble: 6 x 2
+##   interval `mean(steps)`
+##      <int>         <dbl>
+## 1        0        1.72  
+## 2        5        0.340 
+## 3       10        0.132 
+## 4       15        0.151 
+## 5       20        0.0755
+## 6       25        2.09
+```
+### Ready to plot the answer
+
+```r
 ggplot(data = daily_activity) +
   geom_line(mapping = aes(x = interval, y = `mean(steps)`)) +
   labs(title = "Mean step count by 5-minute interval for all days",
        x = "5-minute interval",
        y = "Number of steps")
+```
 
+![](PA1_template_files/figure-html/daily_activity_plot-1.png)<!-- -->
+
+```r
 max_df <- select(daily_activity, interval, `mean(steps)`) %>%
            summarise(max_steps = max(`mean(steps)`),
                      # max_interval = interval[which(`mean(steps)` == max(`mean(steps)`))])
@@ -114,7 +170,7 @@ max_df <- select(daily_activity, interval, `mean(steps)`) %>%
 
 max_interval <- max_df$max_interval
 ```
-The 5-minute interval with the maximum average steps is: `r max_interval`. 
+The 5-minute interval with the maximum average steps is: 835. 
 
 ## Imputing missing values
 ### Assignment
@@ -138,13 +194,22 @@ However, an update in place of the steps column is not native to _dplyr_. Use ba
 in the execute block. Refer to Zelzny7's comment responding to me on
 [StackOverflo](https://stackoverflow.com/questions/28650957/update-a-value-in-one-column-based-on-criteria-in-other-columns)
 
-```{r missing_values, echo = TRUE}
+
+```r
 na_count <- sum(is.na(activity$steps))
 
 # Get on the same row: steps and the mean steps for that interval.
 activity_na_clean <- left_join(activity, daily_activity, by = "interval")
 # Update steps where is NA.
 activity_na_clean <- within(activity_na_clean, steps[is.na(steps)] <- `mean(steps)`)
+```
+
+```
+## Warning in steps[is.na(steps)] <- `mean(steps)`: number of items to replace
+## is not a multiple of replacement length
+```
+
+```r
 # Drop mean
 activity_na_clean <- activity_na_clean[ , 1:3]
 
@@ -161,7 +226,15 @@ ggplot(data = steps_tot_by_day_clean, aes(x = date, y = `sum(steps)`)) +
         labs(title = "Total Steps by Day", subtitle = "Missing Values Cleaned",
              x = "Date", y = "Total Steps") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
 
+```
+## Warning: Ignoring unknown parameters: binwidth, bins, pad
+```
+
+![](PA1_template_files/figure-html/missing_values-1.png)<!-- -->
+
+```r
 # Report new mean and median and compare with results from non-cleaned data.
 before_clean <- c(tot_steps_mean, tot_steps_median)
 after_clean <- c(tot_steps_mean_clean, tot_steps_median_clean)
@@ -174,7 +247,13 @@ stat_comparison <- data.frame(rbind(before_clean,
 names(stat_comparison) <- c("Mean Daily Steps", "Median Daily Steps")
 
 stat_comparison
+```
 
+```
+##              Mean Daily Steps Median Daily Steps
+## before_clean         10766.19       10765.000000
+## after_clean          10766.19       10766.188679
+## diffs                    0.00           1.188679
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
@@ -192,7 +271,8 @@ For this part the _weekdays()_ function may be of some help here. Use the datase
 * Label the facets using *mbiron*'s comment about labellers on
 [StackOverflow](https://stackoverflow.com/questions/3472980/how-to-change-facet-labels).
 
-```{r day_of_week, echo = TRUE}
+
+```r
 activity_na_clean <- activity_na_clean %>%
   mutate(isWeekday = case_when(weekdays(as.Date(date)) %in%
                                  c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ TRUE,
@@ -214,4 +294,6 @@ ggplot(data = daily_activity_by_weekday) +
        y = "Number of steps") +
   facet_grid(isWeekday ~ ., labeller = as_labeller(week_part))
 ```
+
+![](PA1_template_files/figure-html/day_of_week-1.png)<!-- -->
 
